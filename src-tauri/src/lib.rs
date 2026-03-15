@@ -1139,6 +1139,8 @@ pub fn run() {
             set_player_trailer,
             get_save_player_camera,
             set_player_position,
+            #[cfg(target_os = "linux")]
+            utils::linux::linux_get_game_docs
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
