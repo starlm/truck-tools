@@ -36,6 +36,12 @@
 					"cmd": "explorer",
 					"name": "explorer",
 					"sidecar": false
+				},
+				{
+					"args": true,
+					"cmd": "xdg-open",
+					"name": "xdg-open",
+					"sidecar": false
 				}
 			]
 		},

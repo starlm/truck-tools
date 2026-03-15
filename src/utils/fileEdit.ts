@@ -6,7 +6,7 @@ import { Command } from "@tauri-apps/plugin-shell";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { invoke } from "@tauri-apps/api/core";
 import { LazyStore } from "@tauri-apps/plugin-store";
-import { locale } from "@tauri-apps/plugin-os";
+import { locale, type as osType } from "@tauri-apps/plugin-os";
 
 // types
 import {
@@ -79,7 +79,10 @@ export const descriptFiles = async (path: string): Promise<boolean> => {
 };
 
 export const openExplorer = async (path: string) => {
-	const command = await Command.create("explorer", path);
+	const command =
+		osType() == "windows"
+			? Command.create("explorer", path)
+			: Command.create("xdg-open", path.replace(/\\/g, "/"));
 	await command.execute();
 };
 
