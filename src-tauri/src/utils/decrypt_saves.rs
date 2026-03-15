@@ -157,11 +157,7 @@ pub async fn decrypt_file(bin_dir: &str) -> Option<String> {
         if let Ok(res) = decrypt_truck::decrypt_bin_file(&bin_file) {
             match String::from_utf8(res) {
                 Ok(res) => return Some(res),
-
-                // Fallback to SII_Decrypt.dll if the user is on Windows, otherwise abort
-                #[cfg(not(target_os = "windows"))]
-                Err(_) => return None,
-                #[cfg(target_os = "windows")]
+                // Fallback to SII_Decrypt.dll
                 Err(_) => {}
             }
         }
