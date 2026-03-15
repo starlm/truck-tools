@@ -114,13 +114,11 @@ export const ProfileContexInfo = ({ children }: ProviderProps) => {
 			});
 			return;
 		}
-		console.log(profile_info);
 
 		setIsSavesLoading(true);
 		const saveList = await getListSaves(profile_info.dir);
 		setIsSavesLoading(false);
 
-		console.log(saveList);
 		if (!saveList) return;
 
 		const profile_to_save = {

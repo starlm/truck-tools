@@ -21,6 +21,9 @@
 			"allow": [
 				{
 					"path": "**"
+				},
+				{
+					"path": "/home/*/.local/**"
 				}
 			]
 		},

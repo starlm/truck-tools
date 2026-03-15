@@ -45,7 +45,7 @@ export const ETS2_DIR = "Euro Truck Simulator 2";
 
 const getProfileImage = async (path: string): Promise<string | undefined> => {
 	const imgPath = await join(path, "online_avatar.png");
-	const verifyExist = false; //await exists(imgPath);
+	const verifyExist = await exists(imgPath);
 
 	if (!verifyExist) return undefined;
 	return convertFileSrc(imgPath);
