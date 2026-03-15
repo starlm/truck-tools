@@ -18,6 +18,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Game {
     ETS2,
     ATS,
