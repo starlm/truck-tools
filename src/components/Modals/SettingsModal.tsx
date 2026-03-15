@@ -4,7 +4,7 @@ import { FC, useState, useContext, useEffect } from "react";
 import { open as openLink } from "@tauri-apps/plugin-shell";
 import { open, OpenDialogOptions } from "@tauri-apps/plugin-dialog";
 import { documentDir } from "@tauri-apps/api/path";
-import { locale } from "@tauri-apps/plugin-os";
+import { locale, type as osType } from "@tauri-apps/plugin-os";
 
 // UI
 import { Input } from "@heroui/input";
@@ -46,6 +46,8 @@ import {
 	IconRefresh,
 	IconEdit,
 } from "@tabler/icons-react";
+import { GamesNames } from "@/types/ContexTypes";
+import { invoke } from "@tauri-apps/api/core";
 
 interface SettingsModalProps {
 	isOpen: boolean;
@@ -56,7 +58,8 @@ interface OptionsStateTypes {
 	enableConsole: boolean;
 	enable128Convoy: boolean;
 	opasityProfile: boolean;
-	documentDir: string | null;
+	ets2DocumentsDir: string | null;
+	atsDocumentsDir: string | null;
 }
 
 const SettingsModal: FC<SettingsModalProps> = ({ isOpen, onOpenChange }) => {
@@ -70,7 +73,8 @@ const SettingsModal: FC<SettingsModalProps> = ({ isOpen, onOpenChange }) => {
 		enableConsole: false,
 		enable128Convoy: false,
 		opasityProfile: false,
-		documentDir: null,
+		ets2DocumentsDir: null,
+		atsDocumentsDir: null,
 	});
 
 	const onClickTheme = (theme: themeTypesSystem) => {
@@ -109,38 +113,71 @@ const SettingsModal: FC<SettingsModalProps> = ({ isOpen, onOpenChange }) => {
 		}));
 	};
 
-	const openSelectDir = async () => {
+	const getLinuxGameDocumentsDir = async (
+		game: GamesNames
+	): Promise<string> => {
+		try {
+			return await invoke("linux_get_game_docs", { game: game });
+		} catch (err) {
+			// Fallback to documents directory
+			console.error(`${err} [Game: ${game}]`);
+			return await documentDir();
+		}
+	};
+
+	const openSelectDir = async (game: GamesNames) => {
 		const options: OpenDialogOptions = {
 			title: settings.document_dialog_title,
 			directory: true,
 			multiple: false,
-			defaultPath: await documentDir(),
+			defaultPath:
+				osType() == "linux"
+					? await getLinuxGameDocumentsDir(game)
+					: await documentDir(),
 		};
 
 		const res = await open(options);
 
 		if (res) {
-			await storeDocumentDir(res as string);
+			await storeDocumentDir(game, res as string);
 			await setGameDeveloperStatus(false, game);
 			await setConvoySize(false, game);
 
-			setOptionsState((prev) => ({
-				...prev,
-				enableConsole: false,
-				enable128Convoy: false,
-				documentDir: res as string,
-			}));
+			if (game == "ets2") {
+				setOptionsState((prev) => ({
+					...prev,
+					enableConsole: false,
+					enable128Convoy: false,
+					ets2DocumentsDir: res as string,
+				}));
+			} else {
+				setOptionsState((prev) => ({
+					...prev,
+					enableConsole: false,
+					enable128Convoy: false,
+					atsDocumentsDir: res as string,
+				}));
+			}
 			reloadProfiles();
 		}
 	};
 
 	const resetConfigs = async () => {
-		const dirSetDefault = await documentDir();
+		let ets2DocumentsDir: string, atsDocumentsDir: string;
+		if (osType() == "linux") {
+			ets2DocumentsDir = await getLinuxGameDocumentsDir("ets2");
+			atsDocumentsDir = await getLinuxGameDocumentsDir("ats");
+		} else {
+			ets2DocumentsDir = await documentDir();
+			atsDocumentsDir = ets2DocumentsDir;
+		}
+
 		const sys_lang = await locale();
 		const lang_res = mostSimilarLang(sys_lang);
 
 		onClickTheme("system");
-		await storeDocumentDir(dirSetDefault);
+		await storeDocumentDir("ets2", ets2DocumentsDir);
+		await storeDocumentDir("ats", atsDocumentsDir);
 		reloadProfiles();
 
 		await setGameDeveloperStatus(false, game);
@@ -152,22 +189,28 @@ const SettingsModal: FC<SettingsModalProps> = ({ isOpen, onOpenChange }) => {
 			enableConsole: false,
 			enable128Convoy: false,
 			opasityProfile: true,
-			documentDir: dirSetDefault,
+			ets2DocumentsDir: ets2DocumentsDir,
+			atsDocumentsDir: atsDocumentsDir,
 		});
 		changeLang(lang_res);
 	};
 
 	useEffect(() => {
 		const getOptions = async () => {
-			const getDocumentDirStore = await getStoredDocumentDir();
+			const getDocumentDirStore = async (game: GamesNames) => {
+				const stored = getStoredDocumentDir(game);
+				if (stored) return stored;
+
+				const docDir = (
+					osType() == "linux"
+						? await getLinuxGameDocumentsDir(game)
+						: await documentDir()
+				) as string;
+				storeDocumentDir(game, docDir);
+				return docDir;
+			};
 			const getGameDeveloperStatusStore = await getGameDeveloperStatus(game);
 			const getOpasityStatusStore = await getStoredOpasityStatus();
-
-			let documentDirString = getDocumentDirStore;
-			if (!documentDirString) {
-				documentDirString = await documentDir();
-				storeDocumentDir(documentDirString);
-			}
 
 			setOptionsState({
 				enableConsole:
@@ -175,7 +218,8 @@ const SettingsModal: FC<SettingsModalProps> = ({ isOpen, onOpenChange }) => {
 					getGameDeveloperStatusStore.developer,
 				enable128Convoy: getGameDeveloperStatusStore.active_max_convoy_mode,
 				opasityProfile: getOpasityStatusStore,
-				documentDir: documentDirString,
+				ets2DocumentsDir: await getDocumentDirStore("ets2"),
+				atsDocumentsDir: await getDocumentDirStore("ats"),
 			});
 		};
 
@@ -283,27 +327,74 @@ const SettingsModal: FC<SettingsModalProps> = ({ isOpen, onOpenChange }) => {
 									{settings.input_opacity_profile}
 								</Switch>
 							</div>
-							<div className="flex">
-								<Input
-									disabled={true}
-									value={optionsState.documentDir || ""}
-									startContent={<IconFolderPlus />}
-									endContent={
-										<div className="flex">
-											<Button
-												color="primary"
-												startContent={<IconFolderSearch />}
-												onPress={openSelectDir}
-												size="sm"
-											/>
-										</div>
-									}
-									size="sm"
-									label={settings.input_document_folder.label}
-									placeholder={settings.input_document_folder.placeholder}
-									variant="bordered"
-								/>
-							</div>
+							{osType() == "linux" ? (
+								<>
+									<div className="flex">
+										<Input
+											disabled={true}
+											value={optionsState.ets2DocumentsDir || ""}
+											startContent={<IconFolderPlus />}
+											endContent={
+												<div className="flex">
+													<Button
+														color="primary"
+														startContent={<IconFolderSearch />}
+														onPress={() => openSelectDir("ets2")}
+														size="sm"
+													/>
+												</div>
+											}
+											size="sm"
+											label={settings.input_document_folder.label}
+											placeholder={settings.input_document_folder.placeholder}
+											variant="bordered"
+										/>
+									</div>
+									<div className="flex">
+										<Input
+											disabled={true}
+											value={optionsState.atsDocumentsDir || ""}
+											startContent={<IconFolderPlus />}
+											endContent={
+												<div className="flex">
+													<Button
+														color="primary"
+														startContent={<IconFolderSearch />}
+														onPress={() => openSelectDir("ats")}
+														size="sm"
+													/>
+												</div>
+											}
+											size="sm"
+											label={settings.input_document_folder.label}
+											placeholder={settings.input_document_folder.placeholder}
+											variant="bordered"
+										/>
+									</div>
+								</>
+							) : (
+								<div className="flex">
+									<Input
+										disabled={true}
+										value={optionsState.ets2DocumentsDir || ""}
+										startContent={<IconFolderPlus />}
+										endContent={
+											<div className="flex">
+												<Button
+													color="primary"
+													startContent={<IconFolderSearch />}
+													onPress={() => openSelectDir("ets2")}
+													size="sm"
+												/>
+											</div>
+										}
+										size="sm"
+										label={settings.input_document_folder.label}
+										placeholder={settings.input_document_folder.placeholder}
+										variant="bordered"
+									/>
+								</div>
+							)}
 						</ModalBody>
 						<ModalFooter className="justify-center">
 							<Button

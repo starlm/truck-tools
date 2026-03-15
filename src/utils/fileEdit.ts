@@ -83,11 +83,17 @@ export const openExplorer = async (path: string) => {
 	await command.execute();
 };
 
-export const getDocsDir = async (): Promise<string> => {
-	const storeDocsDir = await getStoredDocumentDir();
+export const getDocsDir = async (game: GamesNames): Promise<string> => {
+	const storeDocsDir = await getStoredDocumentDir(game);
 	const docsDirSystem = await documentDir();
 
-	return storeDocsDir || docsDirSystem;
+	let dir = storeDocsDir || docsDirSystem;
+	if (game == "ets2" && !dir.endsWith(ETS2_DIR))
+		dir = await join(dir, ETS2_DIR);
+	else if (game == "ats" && !dir.endsWith(ATS_DIR))
+		dir = await join(dir, ATS_DIR);
+
+	return dir;
 };
 
 export const getListSaves = async (
@@ -126,12 +132,10 @@ export const getListDirProfiles = async (
 export const readProfileNames = async (
 	game: GamesNames
 ): Promise<ProfileWithoutSaves[]> => {
-	const readDirProfiles = (game === "ets2" ? ETS2_DIR : ATS_DIR) + "/profiles";
-
-	const docsDir = await getDocsDir();
+	const docsDir = await getDocsDir(game);
 
 	const dirProfiles = await getListDirProfiles(
-		(await join(docsDir, readDirProfiles)).toString()
+		(await join(docsDir, "profiles")).toString()
 	);
 	if (!dirProfiles) return [];
 
@@ -556,12 +560,10 @@ export const getSystemTheme = async (): Promise<themeTypes> => {
 export const getGameDeveloperStatus = async (
 	game: GamesNames
 ): Promise<responseGetDeveloperValues> => {
-	const docsDir = await getDocsDir();
+	const docsDir = await getDocsDir(game);
 
 	const rustParams = {
-		dirDocsGameFolder: (
-			await join(docsDir, game === "ets2" ? ETS2_DIR : ATS_DIR)
-		).toString(),
+		dirDocsGameFolder: docsDir,
 	};
 
 	const invoceRes = (await invoke(
@@ -576,12 +578,10 @@ export const setGameDeveloperStatus = async (
 	statusDeveloper: boolean,
 	game: GamesNames
 ): Promise<boolean> => {
-	const docsDir = await getDocsDir();
+	const docsDir = await getDocsDir(game);
 
 	const rustParams = {
-		dirDocsGameFolder: (
-			await join(docsDir, game === "ets2" ? ETS2_DIR : ATS_DIR)
-		).toString(),
+		dirDocsGameFolder: docsDir,
 		statusDeveloper,
 	};
 
@@ -597,12 +597,10 @@ export const setConvoySize = async (
 	convoyStatus: boolean,
 	game: GamesNames
 ): Promise<boolean> => {
-	const docsDir = await getDocsDir();
+	const docsDir = await getDocsDir(game);
 
 	const rustParams = {
-		dirDocsGameFolder: (
-			await join(docsDir, game === "ets2" ? ETS2_DIR : ATS_DIR)
-		).toString(),
+		dirDocsGameFolder: docsDir,
 		convoyStatus,
 	};
 
@@ -821,15 +819,17 @@ export const getStoredTheme = async (): Promise<themeTypesSystem | null> => {
 
 // document dir store
 
-export const storeDocumentDir = async (dir: string) => {
+export const storeDocumentDir = async (game: GamesNames, dir: string) => {
 	const STORE = new LazyStore(STORE_FILE);
-	await STORE.set("document_dir", dir);
+	await STORE.set(`${game}_dir`, dir);
 	await STORE.save();
 };
 
-export const getStoredDocumentDir = async (): Promise<string | null> => {
+export const getStoredDocumentDir = async (
+	game: GamesNames
+): Promise<string | null> => {
 	const STORE = new LazyStore(STORE_FILE);
-	const dir = await STORE.get("document_dir");
+	const dir = await STORE.get(`${game}_dir`);
 
 	if (!dir) return null;
 	if (typeof dir === "string") return dir;

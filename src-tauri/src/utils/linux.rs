@@ -51,14 +51,14 @@ pub async fn linux_get_game_docs(game: Game) -> Result<PathBuf, &'static str> {
     }
 
     // Check if the game is native
-    let game_install_dir = steamapps_dir.join(get_game_name(&game));
+    let game_install_dir = steamapps_dir.join("common").join(get_game_name(&game));
     if !game_install_dir.exists() {
         return Err("Game is not installed");
     }
 
     if game_install_dir.join("bin/linux_x64").exists() {
         Ok(match std::env::home_dir() {
-            Some(dir) => dir.join("Documents").join(get_game_name(&game)),
+            Some(dir) => dir.join("Documents"),
             None => return Err("Failed to resolve $HOME"),
         })
     } else {
@@ -70,8 +70,7 @@ pub async fn linux_get_game_docs(game: Game) -> Result<PathBuf, &'static str> {
         let docs_dir = steamapps_dir
             .join("compatdata")
             .join(appid.to_string())
-            .join("pfx/drive_c/users/steamuser/Documents")
-            .join(get_game_name(&game));
+            .join("pfx/drive_c/users/steamuser/Documents");
 
         Ok(docs_dir)
     }

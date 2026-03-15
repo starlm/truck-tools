@@ -36,7 +36,7 @@ use structs::vec_save_games::VecSaveGames;
 use tauri::{Theme, Window};
 
 use utils::compress_folder::compress_folder_files;
-use utils::decrypt_saves::decrypt_file_to_save;
+use utils::decrypt_saves::{USE_DECRYPT_TRUCK, decrypt_file_to_save};
 use utils::file_edit::{
     copy_folder, get_developer_value, get_list_save_count, get_list_save_game,
     get_list_save_game_dirs, get_rgb_hex_to_game_format, get_save_camera, read_file_text,
@@ -1085,6 +1085,12 @@ async fn set_player_position(
     return Ok(DefaultResponse { res: true });
 }
 
+#[tauri::command]
+async fn set_use_decrypt_truck(state: bool) -> Result<DefaultResponse, ()> {
+    USE_DECRYPT_TRUCK.store(state, std::sync::atomic::Ordering::SeqCst);
+    Ok(DefaultResponse { res: true })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1139,6 +1145,7 @@ pub fn run() {
             set_player_trailer,
             get_save_player_camera,
             set_player_position,
+            set_use_decrypt_truck,
             #[cfg(target_os = "linux")]
             utils::linux::linux_get_game_docs
         ])
