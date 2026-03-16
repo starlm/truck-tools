@@ -5,7 +5,7 @@
  *
  * Scenarios:
  *   a) User installed the Linux build of the game
- *      -> ETS2 & ATS are both writing to $HOME/Documents
+ *      -> ETS2 & ATS are both writing to $XDG_DATA_HOME/Documents
  *   b) User installed the Windows build of the game
  *      -> ETS2/ATS are writing to their own WINE prefixes
  *         $XDG_DATA_HOME/Steam/steamapps/compatdata/<APP_ID>/pfx/drive_c/users/steamuser/Documents
@@ -57,10 +57,7 @@ pub async fn linux_get_game_docs(game: Game) -> Result<PathBuf, &'static str> {
     }
 
     if game_install_dir.join("bin/linux_x64").exists() {
-        Ok(match std::env::home_dir() {
-            Some(dir) => dir.join("Documents"),
-            None => return Err("Failed to resolve $HOME"),
-        })
+        Ok(xdg_data_dir.join(get_game_name(&game)))
     } else {
         let appid = match game {
             Game::ETS2 => ETS2_APPID,
@@ -70,7 +67,8 @@ pub async fn linux_get_game_docs(game: Game) -> Result<PathBuf, &'static str> {
         let docs_dir = steamapps_dir
             .join("compatdata")
             .join(appid.to_string())
-            .join("pfx/drive_c/users/steamuser/Documents");
+            .join("pfx/drive_c/users/steamuser/Documents")
+            .join(get_game_name(&game));
 
         Ok(docs_dir)
     }
