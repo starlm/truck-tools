@@ -1,46 +1,46 @@
 {
     "components": {
         "alert_on_save_default": {
-            "error": "",
-            "succes": ""
+            "error": "Hiba történt a folyamatban",
+            "succes": "Sikeresen elmentve"
         },
         "license_plate": {
-            "btn_delete": "",
-            "btn_load": "",
-            "btn_store": "",
-            "input_colored_margin": "",
+            "btn_delete": "Törlés",
+            "btn_load": "Betöltés",
+            "btn_store": "Mentés",
+            "input_colored_margin": "Színes keret",
             "input_license_plate": {
-                "label": "",
-                "placeholder": ""
+                "label": "Rendszám szöveg",
+                "placeholder": "Írjon be szöveget"
             },
             "input_license_plate_list_store": {
-                "label": "",
-                "placeholder": ""
+                "label": "Válaszd ki az eltárolt rendszámot",
+                "placeholder": "Válasszon rendszámot"
             },
-            "title_select_bg_color": "",
-            "title_select_text_color": ""
+            "title_select_bg_color": "Háttérszín",
+            "title_select_text_color": "Szöveg szín"
         },
         "player_profile": {
-            "btn_profile": "",
+            "btn_profile": "Profil opciók",
             "dropdown": {
                 "profile_options": {
                     "btn_backup_profile": {
-                        "description": "",
-                        "label": "",
+                        "description": "Készíts biztonsági mentést a profilomról",
+                        "label": "Biztonsági mentési profil",
                         "modal": {
-                            "btn_apply": "",
-                            "btn_close": "",
-                            "btn_open_folder": "",
-                            "description": "",
+                            "btn_apply": "Biztonsági mentés",
+                            "btn_close": "Bezárás",
+                            "btn_open_folder": "Mappa megnyitása",
+                            "description": "Készítsen biztonsági másolatot, ne felejtse el megadni a célhelyet",
                             "input_backup_destination": {
-                                "label": "",
-                                "placeholder": ""
+                                "label": "Célmappa kiválasztása",
+                                "placeholder": "Válassza ki a célmappát"
                             },
                             "save_folder_dialog": {
                                 "filters_name": {
-                                    "zip": ""
+                                    "zip": "Zip fájlok"
                                 },
-                                "title": ""
+                                "title": "Célmappa kiválasztása"
                             },
                             "title": ""
                         }
@@ -463,16 +463,17 @@
                     "title": ""
                 }
             },
-            "infinite_fuel": {
-                "description_card": "",
-                "label_card": "",
+            "custom_fuel": {
+                "description_card": "Set a custom fuel level for your current truck",
+                "label_card": "Custom fuel level",
                 "modal": {
                     "btn_apply": "",
                     "btn_close": "",
                     "btn_open": "",
                     "btn_restore_fuel": "",
-                    "description": "",
-                    "title": "",
+                    "description": "Set the fuel level for your current truck. A higher fuel level also increases the truck's weight, since fuel has physics and affects its handling.",
+                    "title": "Custom fuel level",
+                    "fuel_level": "Fuel level",
                     "warning_message": {
                         "message": "",
                         "title": ""

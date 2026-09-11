@@ -308,7 +308,7 @@ async fn fill_any_trucks_fuel(dir_save: &str, fuel: &str) -> Result<DefaultRespo
 }
 
 #[tauri::command]
-async fn set_infinite_fuel(dir_save: &str) -> Result<DefaultResponse, ()> {
+async fn set_infinite_fuel(dir_save: &str, fuel_level: &str) -> Result<DefaultResponse, ()> {
     let file: Vec<String> = match read_file_text(dir_save).await {
         Some(file) => file,
         None => return Ok(DefaultResponse { res: false }),
@@ -325,7 +325,7 @@ async fn set_infinite_fuel(dir_save: &str) -> Result<DefaultResponse, ()> {
         None => return Ok(DefaultResponse { res: false }),
     };
 
-    let truck_fuel: Vec<String> = match set_infinite_fuel_truck(&file, truck_index) {
+    let truck_fuel: Vec<String> = match set_infinite_fuel_truck(&file, truck_index, fuel_level) {
         Some(truck_fuel) => truck_fuel,
         None => return Ok(DefaultResponse { res: false }),
     };
@@ -882,10 +882,11 @@ async fn set_truck_km(dir_save: &str, km: &str) -> Result<DefaultResponse, ()> {
         None => return Ok(DefaultResponse { res: false }),
     };
 
-    let profit_log_index = match get_truck_profit_log_id(&file, truck_find.index, truck_number) {
-        Some(profit_log_index) => profit_log_index,
-        None => return Ok(DefaultResponse { res: false }),
-    };
+    let profit_log_index =
+        match get_truck_profit_log_id(&file, truck_find.index_vehicle_id, truck_number) {
+            Some(profit_log_index) => profit_log_index,
+            None => return Ok(DefaultResponse { res: false }),
+        };
 
     let truck_km: Vec<String> = match set_truck_km_edit(&file, profit_log_index, truck_index, km) {
         Some(truck_km) => truck_km,
@@ -1080,8 +1081,13 @@ async fn set_player_position(
         None => return Ok(DefaultResponse { res: false }),
     };
 
-    save_file(dir_save.to_string(), set_player_position).await;
+    let mut arr_val_clone = file.clone();
 
+    for item in set_player_position.iter() {
+        arr_val_clone[item.index] = item.value.to_string();
+    }
+
+    save_file(dir_save.to_string(), arr_val_clone).await;
     return Ok(DefaultResponse { res: true });
 }
 

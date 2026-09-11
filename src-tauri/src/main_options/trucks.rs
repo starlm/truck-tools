@@ -3,12 +3,16 @@ use super::accessories::{
 };
 use super::license_plate::get_license_plate_formated;
 
+use crate::main_options::vehicles_player::{
+    get_assigned_vehicles_player, get_player_vehicles_data_have_same_vehicle_id,
+    get_player_vehicles_index, get_vehicle_id_from_player_vehicles,
+};
 use crate::structs::vec_items_find::VecItemsFind;
 use crate::structs::vec_trucks::{
     GarageInfo, Models, TruckBrandsATS, TruckBrandsETS2, ValueGarage, VecSaveTrucks,
     VecTruckProfitLog, VecTrucksId, VecTrucksListId,
 };
-use cached::proc_macro::cached;
+use cached::cached;
 use serde_json::from_str;
 
 const ETS2_TRUCK_BRANDS: &str = include_str!("../embeds/trucks_data_ets2.json");
@@ -312,21 +316,28 @@ fn is_badge(value_split: &String) -> bool {
 }
 
 pub fn get_truck_id(arr_val: &Vec<String>) -> Option<VecTrucksId> {
-    for (i, item) in arr_val.iter().enumerate() {
-        if item.contains(" assigned_truck") {
-            if item.contains(" null") {
-                return None;
-            }
-            let option_values: Vec<&str> = item.split(':').collect();
+    let (assigned_vehicles_index, assigned_vehicles_id) =
+        match get_assigned_vehicles_player(arr_val) {
+            Some(assigned_vehicles) => (assigned_vehicles.index, assigned_vehicles.value),
+            None => return None,
+        };
 
-            return Some(VecTrucksId {
-                index: i,
-                id: option_values[1].to_string(),
-            });
-        }
-    }
+    let vehicle_id_index =
+        match get_player_vehicles_index(arr_val, &assigned_vehicles_id, assigned_vehicles_index) {
+            Some(vehicle_id_index) => vehicle_id_index,
+            None => return None,
+        };
 
-    return None;
+    let vehicle_id = match get_vehicle_id_from_player_vehicles(arr_val, vehicle_id_index) {
+        Some(vehicle_id) => vehicle_id,
+        None => return None,
+    };
+
+    return Some(VecTrucksId {
+        index: vehicle_id.index,
+        index_vehicle_id: assigned_vehicles_index,
+        id: vehicle_id.value,
+    });
 }
 
 pub fn get_truck_vehicle_index(
@@ -566,29 +577,29 @@ pub fn set_player_truck_file(
 ) -> Option<(Vec<VecItemsFind>, usize)> {
     let mut vec_items_replace: Vec<VecItemsFind> = Vec::new();
 
-    let mut found_truck: bool = false;
-    let mut truck_index: usize = 0;
-    for (i, item) in arr_val.iter().enumerate() {
-        if item.contains("assigned_truck") {
-            vec_items_replace.push(VecItemsFind {
-                index: i,
-                value: format!(" assigned_truck: {}", truck_id),
-            });
-            vec_items_replace.push(VecItemsFind {
-                index: i + 1,
-                value: format!(" my_truck: {}", truck_id),
-            });
-            found_truck = true;
-            truck_index = i;
-            break;
-        }
+    let current_truck_id = match get_truck_id(&arr_val) {
+        Some(truck_id) => truck_id,
+        None => return None,
+    };
+
+    let vehicles_list_same_truck_id =
+        match get_player_vehicles_data_have_same_vehicle_id(arr_val, &current_truck_id.id) {
+            Some(vehicles_list_same_truck_id) => vehicles_list_same_truck_id,
+            None => return None,
+        };
+
+    for item in vehicles_list_same_truck_id.iter() {
+        vec_items_replace.push(VecItemsFind {
+            index: item.vehicle_id_index,
+            value: format!(" vehicle: {}", truck_id),
+        });
     }
 
-    if found_truck {
-        return Some((vec_items_replace, truck_index));
+    if vec_items_replace.is_empty() {
+        return None;
     }
 
-    return None;
+    return Some((vec_items_replace, current_truck_id.index));
 }
 
 pub fn set_plyaer_hq_truck_file(
@@ -777,12 +788,16 @@ pub fn set_any_trucks_fuel(arr_val: &Vec<String>, fuel: &str) -> Option<Vec<Stri
     return Some(arr_val_clone);
 }
 
-pub fn set_infinite_fuel_truck(arr_val: &Vec<String>, index: usize) -> Option<Vec<String>> {
+pub fn set_infinite_fuel_truck(
+    arr_val: &Vec<String>,
+    index: usize,
+    fuel_level: &str,
+) -> Option<Vec<String>> {
     let mut arr_val_clone: Vec<String> = arr_val.clone();
 
     for (i, item) in arr_val.iter().enumerate().skip(index) {
         if item.contains(" fuel_relative:") {
-            arr_val_clone[i] = format!(" fuel_relative: {}", "9999");
+            arr_val_clone[i] = format!(" fuel_relative: {}", fuel_level);
             break;
         }
 
